@@ -26,7 +26,7 @@ func HandleWebSocketColleges(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("❌ WebSocket upgrade error: %v", err)
+		log.Printf(" WebSocket upgrade error: %v", err)
 		return
 	}
 	defer conn.Close()
@@ -40,7 +40,7 @@ func HandleWebSocketColleges(w http.ResponseWriter, r *http.Request) {
 		_, _, err := conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("❌ WebSocket error: %v", err)
+				log.Printf(" WebSocket error: %v", err)
 			}
 			break
 		}

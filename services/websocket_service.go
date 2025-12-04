@@ -39,7 +39,7 @@ func SendCollegesUpdate(country string, conn *websocket.Conn) {
 	})
 
 	if err != nil {
-		log.Printf("❌ Error fetching colleges: %v", err)
+		log.Printf(" Error fetching colleges: %v", err)
 		return
 	}
 	defer cursor.Close(context.TODO())

@@ -20,18 +20,18 @@ func GetCollegeFromCache(collegeName string) (*models.CollegeStats, error) {
 		return nil, err
 	}
 
-	log.Println("✅ Found in cache")
+	log.Println("Found in cache")
 	return &cachedResult, nil
 }
 
 func SaveCollegeToCache(stats *models.CollegeStats) error {
 	_, err := config.CollegeCollection.InsertOne(context.TODO(), stats)
 	if err != nil {
-		log.Printf("⚠️ Cache store failed: %v", err)
+		log.Printf("Cache store failed: %v", err)
 		return err
 	}
 
-	log.Println("💾 Cached in MongoDB")
+	log.Println("Cached in MongoDB")
 	return nil
 }
 
@@ -43,20 +43,20 @@ func UpdateCollegeCache(collegeName string, stats *models.CollegeStats) error {
 	)
 
 	if err != nil {
-		log.Printf("⚠️ Cache update failed: %v", err)
+		log.Printf("Cache update failed: %v", err)
 		return err
 	}
 
-	log.Printf("✅ Cache updated for %s", collegeName)
+	log.Printf("Cache updated for %s", collegeName)
 	return nil
 }
 
 func CompareAndUpdateCache(collegeName string, cachedData models.CollegeStats) {
-	log.Printf("🔄 Background: Fetching fresh data for %s from Gemini", collegeName)
+	log.Printf("Background: Fetching fresh data for %s from Gemini", collegeName)
 
 	freshStats, err := FetchCollegeDataFromGemini(collegeName)
 	if err != nil {
-		log.Printf("❌ Background Gemini fetch error: %v", err)
+		log.Printf("Background Gemini fetch error: %v", err)
 		return
 	}
 
@@ -75,10 +75,10 @@ func CompareAndUpdateCache(collegeName string, cachedData models.CollegeStats) {
 	}
 
 	if hasChanged {
-		log.Printf("🔄 Changes detected for %s, updating cache...", collegeName)
+		log.Printf("Changes detected for %s, updating cache...", collegeName)
 		UpdateCollegeCache(collegeName, freshStats)
 	} else {
-		log.Printf("✅ No changes detected for %s", collegeName)
+		log.Printf("No changes detected for %s", collegeName)
 	}
 }
 

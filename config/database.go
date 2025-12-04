@@ -3,6 +3,7 @@ package config
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,15 +20,21 @@ func ConnectDatabase() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	mongoURI := os.Getenv("MONGO_URI")
+	if mongoURI == "" {
+		log.Println("ERROR: MONGO_URI environment variable not set")
+		return nil
+	}
+
 	var err error
-	Client, err = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	Client, err = mongo.Connect(ctx, options.Client().ApplyURI(mongoURI))
 	if err != nil {
 		return err
 	}
 
 	TruDB = Client.Database("tru")
 	CollegeCollection = TruDB.Collection("college_details")
-	log.Println("✅ Connected to MongoDB - Database: tru, Collection: college_details")
+	log.Println("Connected to MongoDB - Database: tru, Collection: college_details")
 
 	return nil
 }

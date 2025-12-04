@@ -1,6 +1,5 @@
 package controllers
 
-
 import (
 	"log"
 	"net/http"
@@ -17,9 +16,7 @@ func GetCollegeStatistics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	log.Printf("📊 Fetching stats for: %s", collegeName)
-
 
 	cachedResult, err := services.GetCollegeFromCache(collegeName)
 	if err == nil {
@@ -28,18 +25,16 @@ func GetCollegeStatistics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
 	log.Println("🔄 Calling Gemini API directly...")
 	stats, err := services.FetchCollegeDataFromGemini(collegeName)
 	if err != nil {
-		log.Printf("❌ Gemini API error: %v", err)
+		log.Printf(" Gemini API error: %v", err)
 		utils.RespondJSON(w, http.StatusInternalServerError, map[string]string{
 			"error":  "Failed to fetch data from Gemini",
 			"detail": err.Error(),
 		})
 		return
 	}
-
 
 	err = services.SaveCollegeToCache(stats)
 	if err == nil {
@@ -52,7 +47,6 @@ func GetCollegeStatistics(w http.ResponseWriter, r *http.Request) {
 		services.BroadcastNewCollege(stats.Country, collegeData)
 	}
 
-	
 	utils.RespondJSON(w, http.StatusOK, stats)
 }
 
@@ -89,7 +83,7 @@ func GetAllColleges(w http.ResponseWriter, r *http.Request) {
 func GetCountries(w http.ResponseWriter, r *http.Request) {
 	countries, err := services.GetDistinctCountries()
 	if err != nil {
-		log.Printf("❌ Error fetching countries: %v", err)
+		log.Printf(" Error fetching countries: %v", err)
 		defaultCountries := []map[string]string{
 			{"id": "1", "name": "India"},
 			{"id": "2", "name": "United States"},
@@ -133,7 +127,7 @@ func GetCollegesByCountry(w http.ResponseWriter, r *http.Request) {
 
 	colleges, err := services.GetCollegesByCountry(country)
 	if err != nil {
-		log.Printf("❌ Error fetching colleges: %v", err)
+		log.Printf(" Error fetching colleges: %v", err)
 		utils.RespondJSON(w, http.StatusInternalServerError, map[string]string{"error": "Failed to fetch colleges"})
 		return
 	}

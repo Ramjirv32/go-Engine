@@ -7,9 +7,14 @@ import (
 
 	"gobackend/config"
 	"gobackend/routes"
+	"gobackend/services"
 )
 
 func main() {
+	// Initialize cache
+	services.InitializeCache()
+	log.Println("✅ Cache initialized (1 hour TTL)")
+
 	// Load environment variables
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -26,7 +31,7 @@ func main() {
 
 	// Connect to database
 	if err := config.ConnectDatabase(); err != nil {
-		log.Fatal("❌ MongoDB connection failed:", err)
+		log.Fatal(" MongoDB connection failed:", err)
 	}
 	defer config.DisconnectDatabase()
 
