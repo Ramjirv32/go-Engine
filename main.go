@@ -8,9 +8,16 @@ import (
 	"gobackend/config"
 	"gobackend/routes"
 	"gobackend/services"
+
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️ No .env file found, using environment variables")
+	}
+
 	// Initialize cache
 	services.InitializeCache()
 	log.Println("✅ Cache initialized (1 hour TTL)")

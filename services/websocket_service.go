@@ -88,3 +88,38 @@ func BroadcastNewCollege(country string, college map[string]interface{}) {
 	}
 	WsMutex.Unlock()
 }
+
+func SendCountriesUpdate(conn *websocket.Conn) {
+	cursor, err := config.CollegeCollection.Find(context.TODO(), bson.M{})
+
+	if err != nil {
+		log.Printf("❌ Error fetching countries: %v", err)
+		return
+	}
+	defer cursor.Close(context.TODO())
+
+	countryMap := make(map[string]bool)
+	var countries []map[string]interface{}
+
+	for cursor.Next(context.TODO()) {
+		var college models.CollegeStats
+		if err := cursor.Decode(&college); err == nil {
+			if !countryMap[college.Country] {
+				countryMap[college.Country] = true
+				countries = append(countries, map[string]interface{}{
+					"id":   college.Country,
+					"name": college.Country,
+				})
+			}
+		}
+	}
+
+	message := map[string]interface{}{
+		"type":      "countries_update",
+		"countries": countries,
+		"count":     len(countries),
+	}
+
+	conn.WriteJSON(message)
+	log.Printf("📡 Sent %d countries to client", len(countries))
+}

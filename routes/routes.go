@@ -20,6 +20,8 @@ func SetupRoutes() *mux.Router {
 	r.HandleFunc("/api/health", controllers.HealthCheck).Methods("GET")
 
 	r.HandleFunc("/ws/colleges", controllers.HandleWebSocketColleges)
+	r.HandleFunc("/ws/countries", controllers.HandleWebSocketCountries)
+	r.HandleFunc("/ws", controllers.HandleWebSocketCountries) // Fallback
 
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/",
 		http.FileServer(http.Dir("../App/static"))))

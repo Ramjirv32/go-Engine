@@ -179,13 +179,16 @@ func FetchCollegeDataFromGemini(collegeName string) (*models.CollegeStats, error
 
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
-		log.Printf(" GEMINI_API_KEY not set in environment")
-		return nil, fmt.Errorf("GEMINI_API_KEY not set")
+		log.Printf("❌ GEMINI_API_KEY not set in environment")
+		return nil, fmt.Errorf("GEMINI_API_KEY not set in .env file")
 	}
 
 	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
-		log.Printf(" Failed to create Gemini client: %v", err)
+		log.Printf("❌ Failed to create Gemini client: %v", err)
+		if strings.Contains(err.Error(), "403") {
+			log.Printf("🔴 API Key Error: Your Gemini API key may be compromised or invalid")
+		}
 		return nil, fmt.Errorf("failed to create Gemini client: %w", err)
 	}
 	defer client.Close()
@@ -197,7 +200,21 @@ func FetchCollegeDataFromGemini(collegeName string) (*models.CollegeStats, error
 	// Call Gemini API
 	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
-		log.Printf(" Gemini API error: %v", err)
+		log.Printf("❌ Gemini API error: %v", err)
+
+		// Better error messages for common issues
+		if strings.Contains(err.Error(), "403") || strings.Contains(err.Error(), "leaked") {
+			log.Printf("🔴 CRITICAL: Your API key has been reported as leaked or is invalid!")
+			log.Printf("📌 Action required: Get a new API key from https://aistudio.google.com")
+			return nil, fmt.Errorf("API key compromised. Get a new one from https://aistudio.google.com")
+		}
+		if strings.Contains(err.Error(), "429") {
+			return nil, fmt.Errorf("API rate limit exceeded. Please try again later")
+		}
+		if strings.Contains(err.Error(), "401") {
+			return nil, fmt.Errorf("API authentication failed. Check your GEMINI_API_KEY")
+		}
+
 		return nil, fmt.Errorf("failed to call Gemini API: %w", err)
 	}
 
