@@ -2,33 +2,34 @@ name: Keep Backend Alive
 
 on:
   schedule:
-    # Run every 10 minutes
     - cron: '*/10 * * * *'
-  # Allow manual trigger
   workflow_dispatch:
 
 jobs:
   ping-backend:
     runs-on: ubuntu-latest
-    name: Ping Go Backend
-
+    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Ping backend health endpoint
+      - name: Ping Backend API
         run: |
-          echo "Pinging Go backend at https://go-engine-ex32.onrender.com"
-          curl -s -X GET "https://go-engine-ex32.onrender.com/api/health" \
-            -H "User-Agent: GitHub-Actions-KeepAlive" || true
-          echo "Health check completed!"
+          echo "Pinging backend at $(date)"
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://go-engine-ex32.onrender.com/api/health)
+          echo "Response status code: $response"
+          
+          if [ $response -eq 200 ] || [ $response -eq 304 ]; then
+            echo "✅ Backend is alive and responding"
+          else
+            echo "⚠️ Backend returned status code: $response"
+          fi
 
-      - name: Fetch sample college data
+      - name: Fetch College Data
         run: |
-          echo "Fetching sample college data to keep backend active..."
-          curl -s -X GET "https://go-engine-ex32.onrender.com/api/college-statistics?college_name=IIT%20Delhi" \
-            -H "User-Agent: GitHub-Actions-KeepAlive" || true
-          echo "Data fetch completed!"
-
-      - name: Log execution time
-        run: echo "Keep-alive executed at $(date -u)"
+          echo "Fetching college data at $(date)"
+          response=$(curl -s -o /dev/null -w "%{http_code}" "https://go-engine-ex32.onrender.com/api/college-statistics?college_name=IIT%20Delhi")
+          echo "Response status code: $response"
+          
+          if [ $response -eq 200 ] || [ $response -eq 304 ]; then
+            echo "✅ Backend data fetch successful"
+          else
+            echo "⚠️ Data fetch returned status code: $response"
+          fi
