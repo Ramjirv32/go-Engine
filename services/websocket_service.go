@@ -39,7 +39,7 @@ func SendCollegesUpdate(country string, conn *websocket.Conn) {
 	})
 
 	if err != nil {
-		log.Printf(" Error fetching colleges: %v", err)
+		log.Printf("❌ Error fetching colleges: %v", err)
 		return
 	}
 	defer cursor.Close(context.TODO())
@@ -64,7 +64,9 @@ func SendCollegesUpdate(country string, conn *websocket.Conn) {
 		"count":    len(colleges),
 	}
 
-	conn.WriteJSON(message)
+	if err := conn.WriteJSON(message); err != nil {
+		log.Printf("❌ Error sending colleges update: %v", err)
+	}
 }
 
 func BroadcastNewCollege(country string, college map[string]interface{}) {
@@ -84,7 +86,9 @@ func BroadcastNewCollege(country string, college map[string]interface{}) {
 
 	WsMutex.Lock()
 	for client := range clients {
-		client.WriteJSON(message)
+		if err := client.WriteJSON(message); err != nil {
+			log.Printf("❌ Error broadcasting new college: %v", err)
+		}
 	}
 	WsMutex.Unlock()
 }
@@ -120,6 +124,8 @@ func SendCountriesUpdate(conn *websocket.Conn) {
 		"count":     len(countries),
 	}
 
-	conn.WriteJSON(message)
+	if err := conn.WriteJSON(message); err != nil {
+		log.Printf("❌ Error sending countries update: %v", err)
+	}
 	log.Printf("📡 Sent %d countries to client", len(countries))
 }

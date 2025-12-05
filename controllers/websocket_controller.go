@@ -3,6 +3,7 @@ package controllers
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"gobackend/services"
 
@@ -33,19 +34,43 @@ func HandleWebSocketColleges(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("🔌 WebSocket client connected for country: %s", country)
 
+	// Set connection parameters for stability
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
 	services.RegisterClient(country, conn)
 	services.SendCollegesUpdate(country, conn)
 
+	// Heartbeat ticker
+	ticker := time.NewTicker(25 * time.Second)
+	defer ticker.Stop()
+
 	for {
-		_, _, err := conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("❌ WebSocket error: %v", err)
+		select {
+		case <-ticker.C:
+			// Send ping to keep connection alive
+			if err := conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
+				log.Printf("❌ WebSocket ping error for %s: %v", country, err)
+				goto disconnect
 			}
-			break
+
+		default:
+			// Read message with timeout
+			conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+			_, _, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNoStatusReceived) {
+					log.Printf("❌ WebSocket error for %s: %v", country, err)
+				}
+				goto disconnect
+			}
 		}
 	}
 
+disconnect:
 	services.UnregisterClient(country, conn)
 	log.Printf("🔌 WebSocket client disconnected for country: %s", country)
 }
@@ -60,19 +85,42 @@ func HandleWebSocketCountries(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("🔌 WebSocket client connected for countries updates")
 
+	// Set connection parameters for stability
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+
 	// Send initial countries list
 	services.SendCountriesUpdate(conn)
 
+	// Heartbeat ticker
+	ticker := time.NewTicker(25 * time.Second)
+	defer ticker.Stop()
+
 	// Keep connection open for updates
 	for {
-		_, _, err := conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("❌ WebSocket error: %v", err)
+		select {
+		case <-ticker.C:
+			// Send ping to keep connection alive
+			if err := conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
+				log.Printf("❌ WebSocket ping error for countries: %v", err)
+				goto disconnect2
 			}
-			break
+
+		default:
+			conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+			_, _, err := conn.ReadMessage()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseNoStatusReceived) {
+					log.Printf("❌ WebSocket error for countries: %v", err)
+				}
+				goto disconnect2
+			}
 		}
 	}
 
+disconnect2:
 	log.Printf("🔌 WebSocket client disconnected for countries")
 }

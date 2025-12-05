@@ -165,6 +165,28 @@ Provide realistic data based on actual records.
 // FetchCollegeDataFromGemini fetches data directly from Gemini API
 func FetchCollegeDataFromGemini(collegeName string) (*models.CollegeStats, error) {
 	startTime := time.Now()
+
+	// Clean and normalize the college name
+	collegeName = strings.TrimSpace(collegeName)
+	collegeName = strings.ToLower(collegeName)
+	collegeName = strings.ReplaceAll(collegeName, "  ", " ")
+	// Remove country names that might be appended
+	parts := strings.Split(collegeName, " ")
+	if len(parts) > 0 {
+		// Filter out common country names at the end
+		countries := []string{"india", "usa", "uk", "usa", "australia", "canada", "russia", "china", "japan", "germany", "france"}
+		lastWord := parts[len(parts)-1]
+		for _, country := range countries {
+			if lastWord == country {
+				parts = parts[:len(parts)-1]
+				break
+			}
+		}
+		collegeName = strings.Join(parts, " ")
+	}
+	collegeName = strings.ToTitle(collegeName)
+
+	log.Printf("🔍 Cleaned college name: %s", collegeName)
 	log.Printf("� Fetching data for: %s", collegeName)
 
 	// Check cache first
@@ -259,8 +281,8 @@ func FetchCollegeDataFromGemini(collegeName string) (*models.CollegeStats, error
 // mapGeminiResponseToCollegeStats converts Gemini JSON response to CollegeStats model
 func mapGeminiResponseToCollegeStats(data map[string]interface{}) *models.CollegeStats {
 	stats := &models.CollegeStats{
-		CollegeName:           getStringValue(data, "college_name"),
-		Country:               getStringValue(data, "country"),
+		CollegeName:           strings.TrimSpace(getStringValue(data, "college_name")),
+		Country:               strings.TrimSpace(getStringValue(data, "country")),
 		About:                 getStringValue(data, "about"),
 		Location:              getStringValue(data, "location"),
 		Summary:               getStringValue(data, "summary"),
@@ -268,6 +290,25 @@ func mapGeminiResponseToCollegeStats(data map[string]interface{}) *models.Colleg
 		FacultyStaff:          getIntValue(data, "faculty_staff"),
 		InternationalStudents: getIntValue(data, "international_students"),
 	}
+
+	// Validate country is not empty
+	if stats.Country == "" {
+		log.Printf("⚠️ WARNING: Country is empty for %s. Trying to extract from location: %s", stats.CollegeName, stats.Location)
+		// Try to extract country from location
+		if stats.Location != "" {
+			locationParts := strings.Split(stats.Location, ",")
+			if len(locationParts) > 0 {
+				stats.Country = strings.TrimSpace(locationParts[len(locationParts)-1])
+			}
+		}
+	}
+
+	if stats.Country == "" {
+		log.Printf("❌ CRITICAL: Country could not be determined for %s", stats.CollegeName)
+		stats.Country = "Unknown"
+	}
+
+	log.Printf("✅ Extracted - College: %s, Country: %s", stats.CollegeName, stats.Country)
 
 	// Parse array fields
 	stats.UGPrograms = parseStringArray(getSliceValue(data, "ug_programs"))
